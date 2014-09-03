@@ -1,12 +1,3 @@
-/*
- * This is a JavaScript Scratchpad.
- *
- * Enter some JavaScript, then Right Click or choose from the Execute Menu:
- * 1. Run to evaluate the selected text (Ctrl+R),
- * 2. Inspect to bring up an Object Inspector on the result (Ctrl+I), or,
- * 3. Display to insert the result in a comment after the selection. (Ctrl+L)
- */
-
 /* box Init */
 var body = document.body;
 var floatbox = document.createElement('div');
@@ -16,7 +7,7 @@ floatbox.style.width = '128px';
 floatbox.style.position = 'absolute';
 floatbox.style.backgroundColor = 'red';
 floatbox.id = 'box';
-/* append fixed hight to become visible */
+/* append fixed height to become visible */
 floatbox.style.height = '128px';
 body.appendChild(floatbox);
 
