@@ -181,4 +181,12 @@ function lvMain() {
 	
 }
         
-window.setTimeout(lvMain, 1500); /* src attribute of iframe is dynamic generated,  needs time */
+function checkload() {
+	var temp = document.getElementsByTagName('iframe')[0].getAttribute('src');
+	if(temp !== null) {
+		lvMain();
+	} else {
+		window.setTimeout(checkload, 1000);
+	}
+}
+window.setTimeout(checkload, 1500); /* src attribute of iframe is dynamic generated,  needs time */
