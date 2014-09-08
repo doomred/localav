@@ -2,7 +2,7 @@
 // @name localav
 // @namespace https://github.com/doomred
 // @description Lightweight avfun video dumper
-// @version 0.1
+// @version 0.2
 // @encoding utf-8
 // @license GPLv3
 // @copyleft dye `Eric' jarhoo

@@ -2,7 +2,7 @@
 // @name localav
 // @namespace https://github.com/doomred
 // @description Lightweight avfun video dumper
-// @version 0.1
+// @version 0.2
 // @encoding utf-8
 // @license GPLv3
 // @copyleft dye `Eric' jarhoo
@@ -35,57 +35,71 @@ GM_registerMenuCommand('localav| Force Update!', forceupdate, 'a');
 function lvMain() {
 	'use strict';
 	function dynamicparts(obj) {
-		var key, contentbox, contentSize, temp, i, contentURL, lvDiv;
+		var key, lvContBox, lvContSize, temp, i, lvContURL, lvDiv, lvContQuality,lvContType;
 		lvDiv = window.top.document.getElementById('lv-box');
 		for(key in obj) {
 			if(obj.hasOwnProperty(key)) {
-				contentbox = document.createElement('div');
-				contentbox.classList.add('lv-content');
-				contentbox.style.margin = '1em 1.5em 0 1.5em';
-				contentbox.style.cssFloat = 'left';
-				contentbox.style.cursor = 'pointer';
-				contentURL = obj[key].files[0].url;
-				contentbox.setAttribute('data-lv', contentURL);
-				temp = (obj[key].files[0].bytes / 1024 / 1024 * 100);  // leave two float point
-				contentSize = parseInt(temp, 10) / 100;
-
-				if(contentURL.search('.hlv?') === -1) {  // sina hlv fix
-					contentbox.appendChild(document.createTextNode(obj[key].quality + '[' + obj[key].files[0].type + ']'));
-				} else {
-					contentbox.appendChild(document.createTextNode(obj[key].quality + '[hlv]'));
+				lvContBox = document.createElement('div');
+				lvContBox.classList.add('lv-content');
+				lvContBox.style.margin = '1em 1.5em 0 1.5em';
+				lvContBox.style.cssFloat = 'left';
+				lvContBox.style.cursor = 'pointer';
+				lvContQuality = obj[key].quality;
+				lvContType = obj[key].files[0].type;
+				temp = 0;
+				lvContURL = '';
+				for(i = 0; i < obj[key].files.length; i++) {
+					lvContURL += obj[key].files[i].url;
+					lvContURL += '^';			// split urls
+					temp += obj[key].files[i].bytes;	// add up bytes
 				}
-				contentbox.innerHTML += "<br />";
-				if(!contentSize) {contentSize = '未知';}
-				contentbox.appendChild(document.createTextNode(contentSize + "MB"));
-				contentbox.addEventListener('click', function (e) {  // to download stuff within pure js, midified via stackoverflow 	
-					var iframe, eventSender, cSrc;
+				lvContBox.setAttribute('data-lv', lvContURL);
+if(lvDebug) {window.alert(lvContURL);}
+				temp = temp / 1024 / 1024 * 100;  // leave two float point
+				lvContSize = parseInt(temp, 10) / 100 + 'MB';
+
+				if(lvContURL.search('.hlv?') !== -1) {  // sina hlv fix
+					lvContType = 'hlv';
+				}
+				if(!parseInt(lvContSize, 10)) {lvContSize = '大小仍是个迷';}	// make a joke here
+
+				lvContBox.innerHTML = lvContQuality + ' [' + lvContType + ']<br />' + lvContSize;
+
+				lvContBox.addEventListener('click', function (e) {  // to download stuff within pure js, midified via stackoverflow 	
+					var iframe, eventSender, cSrc, arraySrc, i;
 					if (!e && window.event) {e = window.event;}
 					eventSender = (window.event) ? e.srcElement : e.target;
 					cSrc = eventSender.getAttribute('data-lv');
+					
+					arraySrc = cSrc.split('^');
 					if(cSrc.search('.hlv?') !== -1) {  // sina hlv fix
-						GM_openInTab(cSrc);
+						for(i = 0; i < arraySrc.length; i++) {
+							GM_openInTab(arraySrc[i]);
+						}
 					} else {
-						iframe = document.createElement('iframe');
-						iframe.style.display = 'none';
-						iframe.style.position = 'absoulte';
-						iframe.style.top = '0px';
-						iframe.style.left = '0px';
-						iframe.src = cSrc;
-						document.body.appendChild(iframe);
+						for(i = 0; i < arraySrc.length; i++) {
+							iframe = document.createElement('iframe');
+							iframe.style.display = 'none';
+							iframe.style.position = 'absoulte';
+							iframe.style.top = '0px';
+							iframe.style.left = '0px';
+							iframe.src = arraySrc[i];
+							document.body.appendChild(iframe);
+						}
 					}
 				}, false);
-				if(contentURL.search('&id=tudou') !== -1 || 0) {  // add broken parsed urls here, blame API
-					contentbox.style.backgroundColor = 'grey';
-					contentbox.innerHTML += "<br />可能失效";
+
+				if(lvContURL.search('&id=tudou') !== -1 || 0) {  // add broken parsed urls here, blame API
+					lvContBox.style.backgroundColor = 'grey';
+					lvContBox.innerHTML += "<br />可能失效";
 				}
 
-				/* remove same links */
-				temp = document.getElementsByClassName('lv-content');
-				if(!temp.length) {lvDiv.appendChild(contentbox);}
-				for(i = 0; i < temp.length; i++) {
-					if(temp[i].getAttribute('data-lv') !== contentbox.getAttribute('data-lv')) {
-						lvDiv.appendChild(contentbox);
-					}
+
+				lvDiv.appendChild(lvContBox);
+
+				/* fix sina duplicate generated API*/
+				if(lvContURL.search('v.iask.com') !== -1) {
+					break;
 				}
 			}
 		}
@@ -98,7 +112,8 @@ function lvMain() {
 	temp = temp.substr(temp.search('vid'));  // strip & temp store
 	tempNum = temp.search(';');
 	playerVID = temp.substring(4, tempNum);
-	playerDLURL = "https://ssl.acfun.tv//aliyun/index.php?&type=mobileclient&vid=" + playerVID;  // key core of localav
+	playerDLURL = "https://ssl.acfun.tv//aliyun/index.php?&type=mobileclient&vid=" + playerVID;
+				// key core of localav, another API: jiexi.avfun.info/index.php?vid=xxx
 	if(lvDebug) {window.alert(playerDLURL);}
 
 	/* init lv-box */
