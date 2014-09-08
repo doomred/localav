@@ -2,7 +2,7 @@
 // @name localav
 // @namespace https://github.com/doomred
 // @description Lightweight avfun video dumper
-// @version v0.0.0
+// @version 0.1
 // @encoding utf-8
 // @license GPLv3
 // @copyleft dye `Eric' jarhoo
@@ -19,15 +19,15 @@
 // @grant GM_registerMenuCommand
 // ==/UserScript==
 
-var lvDebug, lvRight, lvBt, lvMain;
-lvDebug = 0;  /* debug usage */
-lvRight = GM_getValue('gm_lv_right', '1em');
+var lvDebug, lvLeft, lvBt, lvMain;
+lvDebug = 0;  // debug usage
+lvLeft = GM_getValue('gm_lv_left', '1em');
 lvBt = GM_getValue('gm_lv_bottom', '1em');
 
 function forceupdate() {
 	'use strict';
 	GM_openInTab('https://raw.github.com/doomred/localav/master/localav.user.js');
-	void(0);
+	return 0;
 }
 GM_registerMenuCommand('localav| Force Update!', forceupdate, 'a');
 
@@ -49,7 +49,11 @@ function lvMain() {
 				temp = (obj[key].files[0].bytes / 1024 / 1024 * 100);  // leave two float point
 				contentSize = parseInt(temp, 10) / 100;
 
-				contentbox.appendChild(document.createTextNode(obj[key].quality + '[' + obj[key].files[0].type + ']'));
+				if(contentURL.search('.hlv?') === -1) {  // sina hlv fix
+					contentbox.appendChild(document.createTextNode(obj[key].quality + '[' + obj[key].files[0].type + ']'));
+				} else {
+					contentbox.appendChild(document.createTextNode(obj[key].quality + '[hlv]'));
+				}
 				contentbox.innerHTML += "<br />";
 				if(!contentSize) {contentSize = '未知';}
 				contentbox.appendChild(document.createTextNode(contentSize + "MB"));
@@ -88,69 +92,27 @@ function lvMain() {
 	}
 
 	var idPlayer, temp, tempNum, playerVID, playerDLURL, playerData, lvDiv ;
-	/* idPlayer = document.getElementById("ACFlashPlayer-re"); This not work, cuz page has two same id name */
+	// idPlayer = document.getElementById("ACFlashPlayer-re"); This not work, cuz page has two same id name
 	idPlayer = document.getElementsByTagName('iframe')[0];
 	temp = idPlayer.getAttribute('src');
 	temp = temp.substr(temp.search('vid'));  // strip & temp store
 	tempNum = temp.search(';');
 	playerVID = temp.substring(4, tempNum);
-	playerDLURL = "https://ssl.acfun.tv//aliyun/index.php?&type=mobileclient&vid=" + playerVID;  /* key core of localav */
+	playerDLURL = "https://ssl.acfun.tv//aliyun/index.php?&type=mobileclient&vid=" + playerVID;  // key core of localav
 	if(lvDebug) {window.alert(playerDLURL);}
 
 	/* init lv-box */
 	lvDiv = document.createElement('div');
 	lvDiv.style.border = '2px solid';
-	lvDiv.style.right = lvRight;
+	lvDiv.style.left = lvLeft;
 	lvDiv.style.bottom = lvBt;
 	lvDiv.style.lineHeight = '1em';
 	lvDiv.style.zIndex = '9999';
 	lvDiv.style.position = 'fixed';
 	lvDiv.style.backgroundColor = '#ffe';
 	lvDiv.id = 'lv-box';
+	lvDiv.setAttribute('draggable', 'true');
 	window.document.body.appendChild(lvDiv);
-
-	GM_xmlhttpRequest({
-		method: "GET",
-		url: playerDLURL,
-		headers: {
-			"Accept": "application/json"
-		},
-		onload: function(response) {
-			playerData = JSON.parse(response.responseText);
-     			dynamicparts(playerData.result); 
-		}
-	});
-
-/*
-(function () {     // make grabbing BUG 
-  document.onmousedown = coordinates;
-  document.onmouseup = mouseup;
-  function coordinates(e) {
-    if (e == null) { e = window.event;}
-    var sender = (typeof( window.event ) != "undefined" ) ? e.srcElement : e.target;
-    if (sender.id === "lv-topbar") {      
-      mouseover = true;
-      pleft = parseInt(lvCloseDiv.style.left);
-      ptop = parseInt(lvCloseDiv.style.top);
-      xcoor = e.clientX;
-      ycoor = e.clientY;
-      document.onmousemove = moveBox;
-      return false;
-    } 
-    return false;
-  }
-	
-  function moveBox(e) {
-    if (e == null) { e = window.event; }
-    lvCloseDiv.style.left = pleft+e.clientX-xcoor+"px";
-    lvCloseDiv.style.top = ptop+e.clientY-ycoor+"px";
-    return false;
-  }
-  function mouseup(e) {
-    document.onmousemove = null;
-  }
-})();
- */
 
 	var lvCloseDiv, lvClose, lvFB;
 	lvCloseDiv = document.createElement('div');
@@ -176,6 +138,47 @@ function lvMain() {
 		window.open('https://github.com/doomred/localav/issues', 'FEED_ME_BUG');
 	};
 	lvDiv.appendChild(lvFB);
+
+	GM_xmlhttpRequest({
+		method: "GET",
+		url: playerDLURL,
+		headers: {
+			"Accept": "application/json"
+		},
+		onload: function(response) {
+			playerData = JSON.parse(response.responseText);
+     			dynamicparts(playerData.result); 
+		}
+	});
+	
+	/* HTML5 drag & drop element
+	 * Modified via:http://jsfiddle.net/robertc/kKuqH/
+	 * More info: https://stackoverflow.com/questions/6230834/html5-drag-and-drop-anywhere-on-the-screen */
+	function drag_start(event) {
+    	var style = window.getComputedStyle(event.target, null);
+    	event.dataTransfer.setData("text/plain",
+    	(parseInt(style.getPropertyValue("left"),10) - event.clientX) + ',' + (parseInt(style.getPropertyValue("bottom"),10) + event.clientY));
+	} 
+	function drag_over(event) { 
+    	event.preventDefault(); 
+    	return false;
+	} 
+	function drop(event) { 
+	    var offset = event.dataTransfer.getData("text/plain").split(',');
+    	var dg = document.getElementById('lv-box');
+    	dg.style.left = (event.clientX + parseInt(offset[0],10)) + 'px';
+    	dg.style.bottom = (-event.clientY + parseInt(offset[1],10)) + 'px';
+		GM_setValue('gm_lv_left', dg.style.left);
+		GM_setValue('gm_lv_bt', dg.style.bottom);
+		
+    	event.preventDefault();
+    	return false;
+	} 
+	document.getElementById('lv-box').addEventListener('dragstart',drag_start,false); 
+	document.body.addEventListener('dragover',drag_over,false); 
+	document.body.addEventListener('drop',drop,false); 
+
+	
 }
         
 window.setTimeout(lvMain, 1500); /* src attribute of iframe is dynamic generated,  needs time */
